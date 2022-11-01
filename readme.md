@@ -1,43 +1,72 @@
-# Servidor HTTP que delega en un proceso la generación de la respuesta
+# CGI HTTP SERVER
 
-Código de un servidor HTTP desarrollado en Java que delega en un proceso la generación de la respuesta (tipo CGI).
+## Autor 📋
+**Felipe Valencia** - fevabac@alumni.uv.es
 
-Usa un fichero de propiedades config.ini que permite configurar:
- - El número de hilos máximos a usar
- - El puerto en el que escucha el servidor
- - El path de la petición HTTP que provoca la ejecución del proceso
- - El proceso a ejecutar en el servidor
- - El orden de los paramámetros para pasarlos al proceso
- - El tipo MIME de respuesta generada
- - El directorio temporal donde se generan artefactos intermedios
- - Información sobre el servidor para entregarla en el campo de cabecera de respuesta
-Estos valores también se pueden pasar como variables de entornos (pensando en encapsular esto en un contenedor)
+## Prerequisitos 🔧
 
-```
-NTHREADS=50
-PORT=8080
-PATH=/ls
-PROCESS=/bin/ls
-PARAMS=options dir
-CONTENT_TYPE=text/plain
-TMP_DIR=/tmp
-SERVER_INFO=Fantastic dynamic HTTP server (version 1.0)
+### 1. Instalar paquetes para obtención de datos
+
+Para la obtención de los datos de las direcciones IP, en el ejemplo de la transparencia, se utiliza la base de datos *GeoLiteCity.dat* pero dicha base de datos, en los repositorios oficiales la encontré en estado *"Deprecated"*. Por lo tanto, realicé la actualización de las bases de datos a las versiones más recientes de [MaxMind Developers](https://dev.maxmind.com/geoip/docs/web-services?lang=en).
+
+El proceso para actualizar las bases de datos es el siguiente:
+
+* Agregar el repositorio MAXMIND
+```sh
+add-apt-repository ppa:maxmind/ppa
 ```
 
-El proyecto tiene una estructura Maven. Para ejecutar el servidor:
-```
-mvn package
-java -jar target/cgi-server-1.0.jar
-```
-
-Sample calls:
-
-* Ejemplo de petición GET
-```
-curl -v "http://localhost:8080/ls?dir=/tmp&options=-latorh"
+* Instalar el paquete GeoIPUpdate
+```sh
+apt-get update
+apt-get install geoipupdate
 ```
 
-* Petición de petición POST
+* Editar el archivo de configuración GeoIPUpdate de la ruta /etc/GeoIP.conf, añadiendo el ID de la cuenta y licencia generados en [MaxMind Developers](https://www.maxmind.com/en/accounts/785057/license-key)
+```sh
+AccountID YOUR_ACCOUNT_ID_HERE
+LicenseKey YOUR_LICENSE_KEY_HERE
 ```
-curl -v -X POST -d "dir=/tmp&options=-latorh" http://localhost:8080/ls
+
+* Actualizar la base de datos (Esto no sobreescribe las bases de datos anteriores, de igual manera, en unas secciones más adelante se deja la URL de un repositorio privado que contiene las bases de datos para su descarga directa)
+```sh
+geoipupdate -v
 ```
+
+* Debido a que las bases de datos están en formato *"mmdb"* se debe de instalar un nuevo paquete
+```sh
+apt-get update
+apt-get install mmdb-bin
+```
+
+### 2. Ubicar los archivos en las rutas correspondientes
+* Archivo con las direcciones IP
+```sh
+/tmp/sample-data/auth.txt
+```
+
+* Base de datos GeoLiteCity. Para la descarga de las bases de datos: [Clic aquí](https://universitatdevalencia-my.sharepoint.com/:u:/g/personal/fevabac_alumni_uv_es/EaVgf5woD3FPqwa5oTyURjcBdxr5w4WIHPunfOu4XkUFxA?e=aMy4es)
+```sh
+/tmp/geodata/GeoLite2-City.mmdb
+```
+
+* Archivo .sh
+```sh
+/tmp/sample-scripts/geoip.sh
+```
+
+## Ejecución 🚀
+
+Se encuentran implementados dos métodos:
+
+1. Obtener un enlace a google maps con todas las direcciones IP (Por defecto realiza esta opción si no se pasa el parámetro number)
+```sh
+http://localhost:8080/geoip?number=1
+```
+![](/src/main/resources/1.PNG)
+
+2. Generar un mapa en el que se muestra la localización (Realizado con OpenLayer y OpenStreetMap)
+```sh
+http://localhost:8080/geoip?number=2
+```
+![](/src/main/resources/2.PNG)
